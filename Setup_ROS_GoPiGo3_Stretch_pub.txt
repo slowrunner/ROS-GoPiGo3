@@ -1,0 +1,483 @@
+ROS Kinetic Setup for GoPiGo3 Node
+
+
+(I used a clean, latest Raspbian Stretch, but I am pretty sure it would have worked installing over Raspbian for Robots - even better because I couldn't get remote desktop to auto start.)
+
+*** Download Raspian Stretch
+  https://downloads.raspberrypi.org/raspbian/images/raspbian-2019-04-09/2019-04-08-raspbian-stretch.zip
+
+*** Flash SD card with Etcher
+  Select the Raspian Stretch zip file
+  (Scroll) Select the 16GB SD Card
+  Flash
+
+=== Mount the card to allow headless configuration
+- Pull card out, reinsert for next steps
+
+=== Enable SSH
+- create file called "ssh" (or ssh.txt) in the Boot partition
+
+=== Setup WiFi Headless
+
+- create the file wpa_supplicant.conf  
+   (quote chars must be straight up/down, traditional, not slanted/matched Unicode chars
+
+country=US
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
+network={
+    ssid="YOUR_SSID"           
+    psk="YOUR_WIFI_PSWD"
+    key_mgmt=WPA-PSK
+}
+
+=== disable ipv6  (I need, you may not)
+
+Browse the disk (boot)
+Rt Click on System Volume Information->Open Terminal Here
+cd ..
+
+cp /boot/cmdline.txt /boot/cmdline.txt.bak
+nano cmdline.txt
+add to end of line/file:
+ipv6.disable=1
+save, exit editor
+
+- eject disk
+
+==== Raspbian First Boot 
+-insert micro SD card
+-power on
+- on mac:  arp -a to check IP
+
+=== First Login  
+ssh pi@10.0.0.XX
+
+The default login for Raspbian is username pi with the password raspberry. 
+
+=== if see SSH HOST KEY verification failed
+on mac:  ssh-keygen -R 10.0.0.XX 
+
+
+
+Login: username: pi  password: raspberry
+
+=== Configure for locale, timezone, and expand filesystem to fill card
+$ sudo raspi-config
+   (You can exit menus by using Tab key, move to Finish, enter key)
+
+  change password to mynewpipw
+  Network Options: change hostname to ROSPI
+  change Localisation:Locale -> remove en_GB, add en_US.UTF8
+                                default local: en_US.UTF-8
+  change Localisation:Timezone-> US->Eastern
+  change Localisation:WiFi Country->US
+  Interfacing:PiCamera enable
+
+  reboot now yes
+
+=== LOG IN Again
+
+pi:mynewpipw
+
+=== Change TightVNC password ====
+
+at a terminal:
+  vncpasswd -print
+  <new password> mynewpipw	
+  <new password> mynewpipw
+
+
+
+=== update now
+sudo apt-get update
+sudo apt-get upgrade
+
+
+==== Check  TEMPERATURE 
+
+
+To view the Pi's temperature
+   vcgencmd measure_temp 
+
+temp=45.1'C
+
+It's generally a good idea to keep the core temperature below 70 degrees
+
+
+
+=== info about processor, memory, disk partitions ===
+cat /proc/cpuinfo
+cat /proc/meminfo
+cat /proc/partitions
+cat /proc/version
+   Stretch kernal: Linux version 4.19.66-v7+ (Aug 15 2019)
+
+
+
+free -h     displays memory usage 
+              total        used        free      shared  buff/cache   available
+Mem:           875M         69M        540M         11M        266M        745M
+Swap:           99M          0B         99M
+
+
+
+=== check memory usage program 
+
+htop
+q to exit
+
+
+Record the ipV4 addresses:  ifconfig
+  wired:  
+  wifi: 
+    ROSPI       : 10.0.0.XX  
+
+=====GETTING WIFI NETWORK DETAILS
+
+To scan for WiFi networks, use the command
+   iwlist scan | less 
+
+=== check time zone
+$ date         to check if correct time
+
+
+========= SSH from mac to Pi =====
+(SSH enabled in raspi-config)
+
+
+ssh -l pi 10.0.0.xxx   
+or 
+ssh pi@10.0.0.xxx
+password: rasberry (changed to mynewpw)
+
+
+===== rebooting ====
+sudo shutdown -r now  (or sudo reboot)
+(if doesn’t come back up try
+sudo shutdown -t9 -r now  
+or (sync;sync;sudo reboot -d -f -i)
+
+==== check disk file systems =====
+df -h  
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/root        15G  4.2G  9.9G  30% /
+devtmpfs        434M     0  434M   0% /dev
+tmpfs           438M     0  438M   0% /dev/shm
+tmpfs           438M   12M  427M   3% /run
+tmpfs           5.0M  4.0K  5.0M   1% /run/lock
+tmpfs           438M     0  438M   0% /sys/fs/cgroup
+/dev/mmcblk0p1   42M   21M   21M  51% /boot
+tmpfs            88M     0   88M   0% /run/user/1000
+
+==== disk space of a directory: 
+
+$ du -hD
+
+===== update and upgrade ===
+
+$ sudo apt-get update
+or
+sudo apt-get sudo apt-get -o Acquire::ForceIPv4=true upgrade
+
+$ sudo apt-get upgrade
+
+===== Fix pip  ?
+
+$sudo pip install --upgrade requests
+
+===== test internet speed ====
+$ sudo pip install speedtest-cli
+$ speedtest
+
+
+
+Speedtest Result 
+
+  2019Sep03:  39.55 Mbps Download, 11.52 Up 34ms ping
+
+
+
+===== describe hardware =====
+
+sudo apt-get install lshw  
+
+sudo lshw
+
+
+=== check memory ===
+sudo lshw
+... 
+*-memory
+          description: System memory
+          physical id: 4
+          size: 862MiB
+
+or 
+ 
+$ free -h
+             total       used       free     shared    buffers     cached
+Mem:          862M       232M       630M       5.9M        14M       177M
+Swap:          99M         0B        99M
+
+
+======  Testing Disk speed =====
+sudo hdparm -t /dev/mmcblk0  (sudo apt-get install hdparm)
+
+reports 
+  Pi3B+:  68 MB in 3.01s = 22.61 MB/sec
+
+======= check OS version ======
+cat /etc/os-release
+
+ 
+PRETTY_NAME="Raspbian GNU/Linux 9 (stretch)"
+NAME="Raspbian GNU/Linux"
+VERSION_ID="9"
+VERSION="9 (stretch)"
+ID=raspbian
+ID_LIKE=debian
+HOME_URL="http://www.raspbian.org/"
+SUPPORT_URL="http://www.raspbian.org/RaspbianForums"
+BUG_REPORT_URL="http://www.raspbian.org/RaspbianBugs"
+
+==== check Pi firmware version
+
+
+vcgencmd version
+uname -a
+
+
+==== SHUTTING DOWN Pi ======
+sudo poweroff  ( or shutdown -h now )
+Safe to remove power when green light blinks a bunch (12 times) and then stops blinking
+
+
+
+
+=== Setup remote desktop 
+
+tightvncserver
+pw: mynewpipwd
+setup viewonly pw: no
+
+default is 1024x768  can change:  tightvncserver -geometry 1920x1080 
+
+=== to get tightvncserver to start automatically at boot:  (Doesn't work??)
+
+
+
+on Mac:
+command-K to invoke Apple Remote Desktop (ARD) which does vnc protocol
+
+Server Address:
+vnc://ROSPI.local:5901 or  10.0.0.XX:5901
+
+=== stretch power management off to limit Tx excessive retries and ping request timeouts
+(10 timeouts/hour with pm:on, about 5/hour with pm:off)
+
+check with:
+iwconfig wlan0     (look at power management:  )
+
+set temporarily with:
+sudo iwconfig wlan0 power off
+
+set permanently with:
+sudo nano /etc/rc.local
+add:
+iwconfig wlan0 power off
+
+
+=== Set SWAPSIZE bigger to build ROS ===
+sudo nano /etc/dphys-swapfile
+add:
+
+# CONF_SWAPSIZE=100
+# Increase swapsize to build ROS
+CONF_SWAPSIZE=1024
+
+(sudo reboot)
+Check with: free -h
+
+
+
+
+From: http://wiki.ros.org/ROSberryPi/Installing%20ROS%20Kinetic%20on%20the%20Raspberry%20Pi
+
+$ sudo apt-get install dirmngr
+
+$ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+
+## FAILED with gpg: keyserver receive failed: Address family not supported by protocol
+$ sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+
+
+## Install Key: took this from section 1.3 http://wiki.ros.org/kinetic/Installation/Ubuntu
+
+$ sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+
+
+Install Bootstrap Dependencies
+
+$ sudo apt-get install -y python-rosdep python-rosinstall-generator python-wstool python-rosinstall build-essential cmake
+
+# Init rosdep
+$ sudo rosdep init
+
+Update ros dependencies
+$ rosdep update
+
+# Create a catkin workspace
+$ mkdir -p ~/ros_catkin_ws
+$ cd ~/ros_catkin_ws
+
+# fetch packages: CHOOSE CUSTOM LIST
+
+# CUSTOM: (ROS-COMM plus dependencies for GoPiGo3 Node)
+$ cd ~/ros_catkin_ws
+
+$ rosinstall_generator ros_comm geometry_msgs rospy sensor_msgs nav_msgs tf --rosdistro kinetic --deps --wet-only --tar >kinetic-custom_ros.rosinstall
+
+$ wstool init src kinetic-custom_ros.rosinstall
+(or wstool merge -t src kinetic-custom_ros.rosinstall  if adding to existing ROS)
+
+( skipping 3.2.1 unavailable dependency collada_urdf since not installing desktop)
+
+$ cd ~/ros_catkin_ws
+$ rosdep install -y --from-paths src --ignore-src --rosdistro kinetic -r --os=debian:stretch
+
+
+# Build the catkin workspace (using extra swapspace and -j2 option)
+$ sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/kinetic -j2
+
+== fix error
+File "./src/catkin/bin/../python/catkin/builder.py", line 66, in <module>
+    from catkin_pkg.terminal_color import ansi, disable_ANSI_colors, fmt, sanitize
+ImportError: No module named terminal_color
+
+copy raw content of https://raw.githubusercontent.com/ros-infrastructure/catkin_pkg/master/src/catkin_pkg/terminal_color.py into 
+sudo nano /usr/lib/python2.7/dist-packages/catkin_pkg/terminal_color.py
+
+
+# Try again:
+# Build the catkin workspace (using extra swapspace and -j2 option)
+$ sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/kinetic -j2
+
+```
+pi@ROSPI:~/ros_catkin_ws $ sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/kinetic -j2
+
+# Setup to "Source" the ROS setup script on login
+
+cd ~
+$ echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
+
+# and do it once right now
+source /opt/ros/kinetic/setup.bash
+
+
+
+
+
+
+
+
+
+=== Installing GOPIGO3 ROS NODE ===
+based on: https://github.com/ros-gopigo/gopigo3_node/wiki/Installation
+
+and formerly: https://medium.com/robotics-with-ros/starting-with-ros-on-the-gopigo3-and-the-raspberry-pi-af62104d401e
+
+
+=== Update GoPiGo3 software to latest (This must be done on the GoPiGo3!):
+
+(REBOOT BEFORE STARTING UPDATE)
+
+cd ~
+
+sudo curl -kL dexterindustries.com/update_gopigo3 | bash
+
+=== Update DI Sensors 
+
+sudo curl -kL dexterindustries.com/update_sensors | bash
+
+=== REBOOT
+sudo shutdown -h now
+wait 20
+push power button
+wait 20
+push power button
+
+
+=== create ROS workspace
+cd ~
+mkdir -p gopigo3_ws/src
+
+
+=== check out the source for the node and build
+git clone https://github.com/ros-gopigo/gopigo3_node.git
+cd gopigo3_node
+sudo mv * ~/gopigo3_ws/src
+cd ~/gopigo3_ws
+
+rosdep install --from-paths src --ignore-src -y
+#All required rosdeps installed successfully
+
+catkin_make
+
+# add the GoPiGo3 environment var to bashrc
+echo "source ~/gopigo3_ws/devel/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+cd ~/gopigo3_ws/devel
+source setup.bash
+
+# TEST ROS GoPiGo3 Node
+cd ~/gopigo3_ws/devel
+roslaunch gopigo3_node gopigo3.launch
+
+
+=== OUTPUT OF TEST =====
+pi@ROSPI:~/gopigo3_ws/devel $ roslaunch gopigo3_node gopigo3.launch
+... logging to /home/pi/.ros/log/60e1e0aa-cff4-11e9-bab6-b4750e1f7fdb/roslaunch-ROSPI-1692.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+
+started roslaunch server http://ROSPI:35717/
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosdistro: kinetic
+ * /rosversion: 1.12.14
+
+NODES
+  /
+    gopigo3 (gopigo3_node/gopigo3_driver.py)
+
+auto-starting new master
+process[master]: started with pid [1723]
+ROS_MASTER_URI=http://localhost:11311
+
+setting /run_id to 60e1e0aa-cff4-11e9-bab6-b4750e1f7fdb
+process[rosout-1]: started with pid [1777]
+started core service [/rosout]
+process[gopigo3-2]: started with pid [1783]
+GoPiGo3 info:
+Manufacturer    :  Dexter Industries
+Board           :  GoPiGo3
+Serial Number   :  BA93EB4F514E3437324A2020FF04XXXX
+Hardware version:  3.x.x
+Firmware version:  1.0.0
+new_angle2 0.0
+new_angle2 0.0
+new_angle2 0.0
+...
+new_angle2 0.00496001689136
+new_angle2 0.0198400675654
+new_angle2 0.0396801351308
+new_angle2 0.0644802195876
+new_angle2 0.084320287153
+new_angle2 0.10912037161
