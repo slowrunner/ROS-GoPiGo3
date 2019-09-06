@@ -1,7 +1,8 @@
 ROS Kinetic Setup for GoPiGo3 Node
 
 
-(I used a clean, latest Raspbian Stretch, but I am pretty sure it would have worked installing over Raspbian for Robots - even better because I couldn't get remote desktop to auto start.)
+(I used a clean, latest Raspbian Stretch, but I am pretty sure it would have worked   
+installing over Raspbian for Robots - even better because I couldn't get remote desktop to auto start.)
 
 *** Download Raspian Stretch
   https://downloads.raspberrypi.org/raspbian/images/raspbian-2019-04-09/2019-04-08-raspbian-stretch.zip
